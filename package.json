@@ -1,7 +1,7 @@
 {
   "name": "ha-multiview",
   "productName": "HA Multiview",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Windows desktop app to run any number of Home Assistant views side by side",
   "main": "main.js",
   "license": "MIT",
