@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>HA Multiview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header id="topbar">
+    <div id="tabs" role="tablist" aria-label="Werkruimtes"></div>
+    <div class="toolbar">
+      <div class="btn-group">
+        <button id="btn-add" class="tb-btn" title="Nieuw paneel (Ctrl+D)"></button>
+        <button id="btn-add-menu" class="tb-btn caret" title="Favoriet openen in nieuw paneel"></button>
+      </div>
+      <button id="btn-layout" class="tb-btn" title="Indeling"></button>
+      <button id="btn-reload-all" class="tb-btn icon" title="Alle panelen herladen (Ctrl+Shift+R)"></button>
+      <button id="btn-fullscreen" class="tb-btn icon" title="Volledig scherm (F11)"></button>
+      <button id="btn-settings" class="tb-btn icon" title="Instellingen"></button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <div id="layout"></div>
+    <div id="panes"></div>
+    <div id="empty" hidden>
+      <div class="empty-card">
+        <div class="empty-art" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <h1 id="empty-title">Nog geen panelen</h1>
+        <p id="empty-text"></p>
+        <div class="empty-actions">
+          <button id="empty-add" class="btn primary">Paneel toevoegen</button>
+          <button id="empty-settings" class="btn">Instellingen</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="shield"></div>
+  <div id="drop-indicator" hidden></div>
+  <div id="drag-ghost" hidden></div>
+  <div id="menu-backdrop" hidden></div>
+  <div id="menu" role="menu" hidden></div>
+  <datalist id="fav-list"></datalist>
+
+  <dialog id="settings">
+    <form id="settings-form" method="dialog">
+      <h2>Instellingen</h2>
+      <label class="field">
+        <span>Home Assistant-adres</span>
+        <input name="baseUrl" type="url" placeholder="http://homeassistant.local:8123" required spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Startpagina voor nieuwe panelen</span>
+        <input name="defaultPath" placeholder="/lovelace" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Favorieten <small>één per regel: <code>Naam | /pad</code></small></span>
+        <textarea name="favorites" rows="7" spellcheck="false"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="restoreSession">
+        <span>Werkruimtes en panelen herstellen bij opstarten</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="allowSelfSigned">
+        <span>Zelfondertekend HTTPS-certificaat accepteren <small>(alleen voor bovenstaand adres)</small></span>
+      </label>
+      <details>
+        <summary>Sneltoetsen</summary>
+        <table class="keys">
+          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Paneel naar rechts splitsen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>Paneel naar beneden splitsen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Paneel sluiten</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Paneel maximaliseren / herstellen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>R</kbd> / <kbd>F5</kbd></td><td>Paneel herladen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>Alle panelen herladen</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td>Naar adresbalk van paneel</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd></td><td>Zoom van paneel</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Automatisch raster</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>T</kbd></td><td>Nieuwe werkruimte</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>9</kbd></td><td>Wisselen van werkruimte</td></tr>
+          <tr><td><kbd>F11</kbd></td><td>Volledig scherm</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd></td><td>DevTools van paneel</td></tr>
+        </table>
+        <p class="hint">Sleep een paneel aan het <b>⠿</b>-handvat naar een ander paneel: midden = wisselen, rand = ernaast plaatsen, op een tabblad = naar die werkruimte verplaatsen.</p>
+      </details>
+      <div class="dialog-actions">
+        <button type="button" id="btn-clear-session" class="btn link danger">Uitloggen en sessiegegevens wissen</button>
+        <span class="spacer"></span>
+        <button type="button" id="settings-cancel" class="btn">Annuleren</button>
+        <button type="submit" class="btn primary">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ask">
+    <form id="ask-form" method="dialog">
+      <h2 id="ask-title"></h2>
+      <input id="ask-input" spellcheck="false">
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="ask-cancel" class="btn">Annuleren</button>
+        <button type="submit" class="btn primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

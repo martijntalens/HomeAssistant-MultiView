@@ -1,0 +1,46 @@
+{
+  "name": "ha-multiview",
+  "productName": "HA Multiview",
+  "version": "1.0.0",
+  "description": "Windows desktop app to run any number of Home Assistant views side by side",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.js",
+    "pack": "electron-builder --win dir",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "build": {
+    "appId": "local.ha-multiview",
+    "productName": "HA Multiview",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "assets/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "HA-Multiview-${version}-portable.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.18.0"
+  }
+}
