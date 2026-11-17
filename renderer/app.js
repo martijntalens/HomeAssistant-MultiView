@@ -11,6 +11,8 @@
  */
 (() => {
   const api = window.haApi;
+  const i18n = window.i18n;
+  const t = i18n.t;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
@@ -18,14 +20,15 @@
   const MIN_PANE_PX = 140;
   const ZOOM_STEPS = [0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5];
   const DEFAULT_FAVORITES = [
-    { name: 'Overzicht', path: '/lovelace' },
-    { name: 'Energie', path: '/energy' },
-    { name: 'Kaart', path: '/map' },
-    { name: 'Logboek', path: '/logbook' },
-    { name: 'Geschiedenis', path: '/history' },
-    { name: 'Automatiseringen', path: '/config/automation/dashboard' },
-    { name: 'Instellingen', path: '/config/dashboard' },
+    ['fav.overview', '/lovelace'],
+    ['fav.energy', '/energy'],
+    ['fav.map', '/map'],
+    ['fav.logbook', '/logbook'],
+    ['fav.history', '/history'],
+    ['fav.automations', '/config/automation/dashboard'],
+    ['fav.settings', '/config/dashboard'],
   ];
+  const defaultFavorites = (lang) => DEFAULT_FAVORITES.map(([key, path]) => ({ name: t(key, null, lang), path }));
 
   const svg = (d) =>
     `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -60,17 +63,19 @@
   function normalizeState(s) {
     s = s && typeof s === 'object' ? s : {};
     const settings = Object.assign(
-      { baseUrl: '', defaultPath: '/lovelace', favorites: DEFAULT_FAVORITES.slice(), restoreSession: true, allowSelfSigned: false },
+      { baseUrl: '', defaultPath: '/lovelace', favorites: null, language: 'auto', restoreSession: true, allowSelfSigned: false },
       s.settings || {}
     );
-    if (!Array.isArray(settings.favorites)) settings.favorites = DEFAULT_FAVORITES.slice();
+    if (settings.language !== 'auto' && !i18n.LANGS.includes(settings.language)) settings.language = 'auto';
+    i18n.setLang(settings.language);
+    if (!Array.isArray(settings.favorites)) settings.favorites = defaultFavorites();
 
     const paneStore = s.panes && typeof s.panes === 'object' ? s.panes : {};
     let workspaces = Array.isArray(s.workspaces) ? s.workspaces.filter((w) => w && w.id) : [];
 
     if (!settings.restoreSession) workspaces = [];
-    workspaces = workspaces.map((w) => ({ id: w.id, name: String(w.name || 'Werkruimte'), tree: cleanTree(w.tree, paneStore) }));
-    if (!workspaces.length) workspaces = [{ id: uid('ws'), name: 'Werkruimte 1', tree: null }];
+    workspaces = workspaces.map((w) => ({ id: w.id, name: String(w.name || t('ws.fallbackName')), tree: cleanTree(w.tree, paneStore) }));
+    if (!workspaces.length) workspaces = [{ id: uid('ws'), name: t('ws.defaultName', { n: 1 }), tree: null }];
 
     // Drop pane records that no tree references any more.
     const used = new Set(workspaces.flatMap((w) => leaves(w.tree)));
@@ -312,32 +317,34 @@
     const el = document.createElement('div');
     el.className = 'pane offstage';
     el.dataset.id = id;
+    // Only static icons go through innerHTML; all text comes from i18n via applyI18n (textContent/attributes).
     el.innerHTML = `
       <div class="pane-header">
-        <span class="ib grip" title="Slepen: wisselen, ernaast plaatsen of naar een werkruimte-tab">${I.grip}</span>
-        <button class="ib" data-act="back" title="Terug">${I.back}</button>
-        <button class="ib" data-act="forward" title="Vooruit">${I.forward}</button>
-        <button class="ib" data-act="reload" title="Herladen (Ctrl+R)">${I.reload}</button>
-        <button class="ib" data-act="favs" title="Favorieten">${I.star}</button>
-        <input class="addr" spellcheck="false" list="fav-list" placeholder="/lovelace" aria-label="Pad of adres">
+        <span class="ib grip" data-i18n-title="pane.drag">${I.grip}</span>
+        <button class="ib" data-act="back" data-i18n-title="pane.back">${I.back}</button>
+        <button class="ib" data-act="forward" data-i18n-title="pane.forward">${I.forward}</button>
+        <button class="ib" data-act="reload" data-i18n-title="pane.reload">${I.reload}</button>
+        <button class="ib" data-act="favs" data-i18n-title="pane.favorites">${I.star}</button>
+        <input class="addr" spellcheck="false" list="fav-list" placeholder="/lovelace" data-i18n-aria-label="pane.address">
         <span class="title"></span>
         <span class="zoom-group">
-          <button class="ib" data-act="zoom-out" title="Uitzoomen (Ctrl+-)">${svg('<path d="M4 8h8"/>')}</button>
-          <button class="zoom-label" data-act="zoom-reset" title="Zoom herstellen (Ctrl+0)">100%</button>
-          <button class="ib" data-act="zoom-in" title="Inzoomen (Ctrl++)">${I.plus}</button>
+          <button class="ib" data-act="zoom-out" data-i18n-title="pane.zoomOut">${svg('<path d="M4 8h8"/>')}</button>
+          <button class="zoom-label" data-act="zoom-reset" data-i18n-title="pane.zoomReset">100%</button>
+          <button class="ib" data-act="zoom-in" data-i18n-title="pane.zoomIn">${I.plus}</button>
         </span>
         <span class="sep z"></span>
-        <button class="ib" data-act="split-right" title="Splits naar rechts (Ctrl+D)">${I.splitRight}</button>
-        <button class="ib" data-act="split-down" title="Splits naar beneden (Ctrl+Shift+D)">${I.splitDown}</button>
-        <button class="ib" data-act="maximize" title="Maximaliseren (Ctrl+Enter)">${I.maximize}</button>
-        <button class="ib close" data-act="close" title="Paneel sluiten (Ctrl+W)">${I.close}</button>
+        <button class="ib" data-act="split-right" data-i18n-title="pane.splitRight">${I.splitRight}</button>
+        <button class="ib" data-act="split-down" data-i18n-title="pane.splitDown">${I.splitDown}</button>
+        <button class="ib" data-act="maximize" data-i18n-title="pane.maximize">${I.maximize}</button>
+        <button class="ib close" data-act="close" data-i18n-title="pane.close">${I.close}</button>
       </div>
       <div class="pane-body">
         <div class="pane-overlay" hidden>
           <div class="msg"></div>
-          <button class="btn" data-act="reload">Opnieuw proberen</button>
+          <button class="btn" data-act="reload" data-i18n="pane.retry"></button>
         </div>
       </div>`;
+    i18n.applyI18n(el);
 
     const wv = document.createElement('webview');
     wv.setAttribute('partition', PARTITION);
@@ -365,9 +372,7 @@
     ctx.addr.value = displayUrl(rec.url);
     updateZoomLabel(ctx);
     updateNav(ctx);
-    if (!rec.url || !/^https?:/i.test(rec.url)) {
-      showError(ctx, 'Geen Home Assistant-adres', 'Stel eerst het adres van je Home Assistant in via Instellingen.');
-    }
+    if (!rec.url || !/^https?:/i.test(rec.url)) showError(ctx, noAddressError);
     return ctx;
   }
 
@@ -428,9 +433,9 @@
     });
     wv.addEventListener('did-fail-load', (e) => {
       if (!e.isMainFrame || e.errorCode === -3) return; // -3 = aborted (normal during redirects)
-      showError(ctx, 'Kan de pagina niet laden', `${e.errorDescription || 'Onbekende fout'} (${e.errorCode})\n${e.validatedURL || ''}`);
+      showError(ctx, () => [t('error.loadFailed'), `${e.errorDescription || t('error.unknown')} (${e.errorCode})\n${e.validatedURL || ''}`]);
     });
-    wv.addEventListener('render-process-gone', () => showError(ctx, 'Dit paneel is gecrasht', 'Klik op opnieuw proberen om het te herladen.'));
+    wv.addEventListener('render-process-gone', () => showError(ctx, () => [t('error.crashed'), t('error.crashedDetail')]));
   }
 
   function onNavigated(ctx, url) {
@@ -458,7 +463,11 @@
     ctx.btnForward.disabled = !fwd;
   }
 
-  function showError(ctx, title, detail) {
+  // `render` returns [title, detail] in the current language; it is kept so the message
+  // can be re-rendered when the language changes while the error is on screen.
+  function showError(ctx, render) {
+    ctx.errorRender = render;
+    const [title, detail] = render();
     ctx.overlayMsg.innerHTML = '';
     const b = document.createElement('b');
     b.textContent = title;
@@ -470,13 +479,16 @@
   }
 
   function hideError(ctx) {
+    ctx.errorRender = null;
     ctx.overlay.hidden = true;
   }
+
+  const noAddressError = () => [t('error.noAddress'), t('error.noAddressDetail')];
 
   function navigatePane(id, url) {
     const ctx = panes.get(id);
     if (!ctx || !/^https?:/i.test(url)) {
-      if (ctx) showError(ctx, 'Geen Home Assistant-adres', 'Stel eerst het adres van je Home Assistant in via Instellingen.');
+      if (ctx) showError(ctx, noAddressError);
       return;
     }
     state.panes[id].url = url;
@@ -589,8 +601,8 @@
 
   function paneLabel(id) {
     const ctx = panes.get(id);
-    if (!ctx) return 'Paneel';
-    return ctx.titleEl.textContent || ctx.addr.value || 'Paneel';
+    if (!ctx) return t('pane.fallbackLabel');
+    return ctx.titleEl.textContent || ctx.addr.value || t('pane.fallbackLabel');
   }
 
   function destroyPane(id) {
@@ -725,17 +737,16 @@
     panes.forEach((ctx, id) => {
       const isMax = maximized.get(ws.id) === id;
       ctx.btnMax.innerHTML = isMax ? I.restore : I.maximize;
-      ctx.btnMax.title = isMax ? 'Herstellen (Ctrl+Enter)' : 'Maximaliseren (Ctrl+Enter)';
+      ctx.btnMax.dataset.i18nTitle = isMax ? 'pane.restore' : 'pane.maximize';
+      ctx.btnMax.title = t(ctx.btnMax.dataset.i18nTitle);
     });
 
     const empty = !ws.tree;
     $('#empty').hidden = !empty;
     if (empty) {
       const hasUrl = !!baseUrl();
-      $('#empty-title').textContent = hasUrl ? 'Nog geen panelen' : 'Welkom bij HA Multiview';
-      $('#empty-text').textContent = hasUrl
-        ? 'Voeg panelen toe en zet zoveel Home Assistant-weergaven naast elkaar als je wilt.'
-        : 'Stel eerst het adres van je Home Assistant in. Daarna kun je zoveel panelen naast elkaar openen als je wilt.';
+      $('#empty-title').textContent = hasUrl ? t('empty.noPanes') : t('empty.welcome');
+      $('#empty-text').textContent = hasUrl ? t('empty.textWithUrl') : t('empty.textNoUrl');
       $('#empty-add').hidden = !hasUrl;
     }
     syncPanes();
@@ -974,7 +985,7 @@
       t.className = 'tab' + (ws.id === state.activeWorkspace ? ' active' : '');
       t.dataset.ws = ws.id;
       t.setAttribute('role', 'tab');
-      t.title = 'Dubbelklik om te hernoemen' + (i < 9 ? ` · Ctrl+${i + 1}` : '');
+      t.title = i18n.t('ws.tabTitle') + (i < 9 ? ` · Ctrl+${i + 1}` : '');
       const name = document.createElement('span');
       name.className = 'tab-name';
       name.textContent = ws.name;
@@ -985,7 +996,7 @@
       if (state.workspaces.length > 1) {
         const x = document.createElement('button');
         x.className = 'tab-close';
-        x.title = 'Werkruimte sluiten';
+        x.title = i18n.t('ws.close');
         x.innerHTML = I.close;
         x.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -999,7 +1010,7 @@
     });
     const add = document.createElement('button');
     add.className = 'tab-add';
-    add.title = 'Nieuwe werkruimte (Ctrl+T)';
+    add.title = t('ws.new');
     add.innerHTML = I.plus;
     add.addEventListener('click', () => newWs());
     bar.append(add);
@@ -1022,8 +1033,8 @@
 
   function newWs() {
     let n = state.workspaces.length + 1;
-    while (state.workspaces.some((w) => w.name === `Werkruimte ${n}`)) n++;
-    const ws = { id: uid('ws'), name: `Werkruimte ${n}`, tree: null };
+    while (state.workspaces.some((w) => w.name === t('ws.defaultName', { n }))) n++;
+    const ws = { id: uid('ws'), name: t('ws.defaultName', { n }), tree: null };
     state.workspaces.push(ws);
     state.activeWorkspace = ws.id;
     if (baseUrl()) {
@@ -1039,7 +1050,8 @@
     const ws = wsById(id);
     if (!ws || state.workspaces.length < 2) return;
     const count = leaves(ws.tree).length;
-    if (count && !confirm(`Werkruimte "${ws.name}" met ${count} paneel/panelen sluiten?`)) return;
+    const question = count === 1 ? t('ws.confirmCloseOne', { name: ws.name }) : t('ws.confirmCloseMany', { name: ws.name, count });
+    if (count && !confirm(question)) return;
     leaves(ws.tree).forEach(destroyPane);
     const idx = state.workspaces.indexOf(ws);
     state.workspaces.splice(idx, 1);
@@ -1052,7 +1064,7 @@
   async function renameWs(id) {
     const ws = wsById(id);
     if (!ws) return;
-    const name = await askText('Werkruimte hernoemen', ws.name);
+    const name = await askText(t('ws.rename'), ws.name);
     if (name && name.trim()) {
       ws.name = name.trim().slice(0, 60);
       renderTabs();
@@ -1119,14 +1131,14 @@
     const favs = state.settings.favorites;
     const items = favs.map((f) => ({ label: f.name, hint: f.path, onClick: () => navigatePane(paneId, resolveUrl(f.path)) }));
     if (items.length) items.push({ sep: true });
-    items.push({ label: 'Huidige pagina toevoegen aan favorieten', onClick: () => addFavoriteFromPane(paneId) });
-    items.push({ label: 'Favorieten beheren…', onClick: () => openSettings() });
+    items.push({ label: t('menu.addCurrentFavorite'), onClick: () => addFavoriteFromPane(paneId) });
+    items.push({ label: t('menu.manageFavorites'), onClick: () => openSettings() });
     showMenu(anchor, items);
   }
 
   function showAddMenu(anchor) {
-    const items = [{ heading: 'Openen in nieuw paneel' }];
-    items.push({ label: 'Startpagina', hint: state.settings.defaultPath || '/', onClick: () => addPane() });
+    const items = [{ heading: t('menu.openInNewPane') }];
+    items.push({ label: t('menu.startPage'), hint: state.settings.defaultPath || '/', onClick: () => addPane() });
     state.settings.favorites.forEach((f) => items.push({ label: f.name, hint: f.path, onClick: () => addPane(resolveUrl(f.path)) }));
     showMenu(anchor, items);
   }
@@ -1139,21 +1151,21 @@
 
   function showLayoutMenu(anchor) {
     const presets = [
-      ['2 naast elkaar', 2, 1],
-      ['3 naast elkaar', 3, 1],
-      ['4 naast elkaar', 4, 1],
-      ['2 boven elkaar', 1, 2],
+      [t('menu.sideBySide', { n: 2 }), 2, 1],
+      [t('menu.sideBySide', { n: 3 }), 3, 1],
+      [t('menu.sideBySide', { n: 4 }), 4, 1],
+      [t('menu.stacked', { n: 2 }), 1, 2],
       ['2 × 2', 2, 2],
       ['3 × 2', 3, 2],
       ['4 × 2', 4, 2],
       ['3 × 3', 3, 3],
     ];
-    const items = [{ heading: 'Indeling (vult aan met nieuwe panelen)' }];
+    const items = [{ heading: t('menu.layoutHeading') }];
     presets.forEach(([label, c, r]) => items.push({ label, iconHtml: presetIcon(c, r), onClick: () => applyGrid(c, c * r) }));
     items.push({ sep: true });
-    items.push({ label: 'Automatisch raster', hint: 'Ctrl+G', onClick: () => applyGrid() });
+    items.push({ label: t('menu.autoGrid'), hint: 'Ctrl+G', onClick: () => applyGrid() });
     items.push({
-      label: 'Gelijk verdelen',
+      label: t('menu.equalize'),
       onClick: () => {
         equalize(activeWs().tree);
         renderLayout();
@@ -1167,7 +1179,7 @@
     const rec = state.panes[paneId];
     if (!rec || !rec.url) return;
     const path = displayUrl(rec.url);
-    const name = await askText(`Naam voor favoriet (${path})`, paneLabel(paneId));
+    const name = await askText(t('menu.favoriteName', { path }), paneLabel(paneId));
     if (!name || !name.trim()) return;
     state.settings.favorites.push({ name: name.trim(), path });
     renderFavList();
@@ -1221,6 +1233,7 @@
     f.baseUrl.value = s.baseUrl;
     f.defaultPath.value = s.defaultPath;
     f.favorites.value = s.favorites.map((x) => `${x.name} | ${x.path}`).join('\n');
+    f.language.value = s.language || 'auto';
     f.restoreSession.checked = !!s.restoreSession;
     f.allowSelfSigned.checked = !!s.allowSelfSigned;
     $('#settings').showModal();
@@ -1248,7 +1261,7 @@
       url = u.origin + u.pathname.replace(/\/+$/, '');
     } catch {
       e.preventDefault();
-      f.baseUrl.setCustomValidity('Voer een geldig http(s)-adres in, bijv. http://homeassistant.local:8123');
+      f.baseUrl.setCustomValidity(t('settings.invalidUrl'));
       f.baseUrl.reportValidity();
       return;
     }
@@ -1258,6 +1271,7 @@
     state.settings.favorites = parseFavorites(f.favorites.value);
     state.settings.restoreSession = f.restoreSession.checked;
     state.settings.allowSelfSigned = f.allowSelfSigned.checked;
+    setLanguage(f.language.value);
     renderFavList();
     save(true);
 
@@ -1270,8 +1284,30 @@
     else renderLayout();
   }
 
+  // Switches the UI language. Names the app generated itself (default favorites, "Workspace 2")
+  // follow the new language; anything the user typed or renamed stays as it is.
+  function setLanguage(setting) {
+    const prev = i18n.lang;
+    state.settings.language = setting === 'auto' || i18n.LANGS.includes(setting) ? setting : 'auto';
+    const next = i18n.setLang(state.settings.language);
+    if (next !== prev) {
+      const same = (a, b) => a.length === b.length && a.every((x, i) => x.name === b[i].name && x.path === b[i].path);
+      if (same(state.settings.favorites, defaultFavorites(prev))) state.settings.favorites = defaultFavorites(next);
+      state.workspaces.forEach((ws) => {
+        const m = ws.name.match(/(\d+)$/);
+        if (m && ws.name === t('ws.defaultName', { n: m[1] }, prev)) ws.name = t('ws.defaultName', { n: m[1] });
+        else if (ws.name === t('ws.fallbackName', null, prev)) ws.name = t('ws.fallbackName');
+      });
+    }
+    i18n.applyI18n(document);
+    panes.forEach((ctx) => {
+      if (ctx.errorRender) showError(ctx, ctx.errorRender);
+    });
+    refresh();
+  }
+
   async function clearSession() {
-    if (!confirm('Je wordt in alle panelen uitgelogd en opgeslagen sessiegegevens (tokens, cache) worden gewist. Doorgaan?')) return;
+    if (!confirm(t('settings.confirmClear'))) return;
     await api.clearSession();
     $('#settings').close();
     panes.forEach((_, id) => reloadPane(id));
@@ -1355,12 +1391,13 @@
 
     for (const id of Object.keys(state.panes)) createPaneEl(id);
 
-    $('#btn-add').innerHTML = `${I.plus}<span>Paneel</span>`;
+    $('#btn-add').innerHTML = `${I.plus}<span data-i18n="toolbar.pane"></span>`;
     $('#btn-add-menu').innerHTML = I.caret;
-    $('#btn-layout').innerHTML = `${I.layout}<span>Indeling</span>`;
+    $('#btn-layout').innerHTML = `${I.layout}<span data-i18n="toolbar.layout"></span>`;
     $('#btn-reload-all').innerHTML = I.reload;
     $('#btn-fullscreen').innerHTML = I.fullscreen;
     $('#btn-settings').innerHTML = I.settings;
+    i18n.applyI18n(document);
 
     $('#btn-add').addEventListener('click', () => addPane());
     $('#btn-add-menu').addEventListener('click', (e) => showAddMenu(e.currentTarget));

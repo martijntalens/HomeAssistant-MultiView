@@ -39,7 +39,7 @@ button {
   cursor: pointer;
 }
 
-button:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
@@ -447,7 +447,16 @@ dialog input:not([type="checkbox"]), dialog textarea {
   user-select: text;
 }
 dialog textarea { resize: vertical; }
-dialog input:focus, dialog textarea:focus { outline: none; border-color: var(--accent); }
+dialog select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+dialog input:focus, dialog textarea:focus, dialog select:focus { outline: none; border-color: var(--accent); }
 
 .check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
 .check input { margin-top: 2px; accent-color: var(--accent); }
